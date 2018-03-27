@@ -1,0 +1,74 @@
+#!/bin/bash
+
+# Since we are not allowed to set variables or pollute the user's shell, we use
+# a big subshell and only source a discovered venv activate script. The argument
+# to source is /dev/null unless a venv is resolved, effectively making all this
+# a noop if problems turn up.
+source $(
+
+  # Helpers.
+  emit () { echo "$VIRTUAL_ENV/bin/activate"; exit; }
+  warn () { echo ">>> (${LOGLEVEL:-warn}) ${*}"; } >&2
+  fail () { LOGLEVEL=fail warn "${*}"; echo "/dev/null"; exit 1; }
+  cleanup () { (($1)) && mv $VIRTUAL_ENV{,.$$} && rm -r $VIRTUAL_ENV.$$; } >&2
+  pyexists () { "$PYTHON" -c 'import venv'; } >&2
+  pycreate () { "$PYTHON" -m venv "$VIRTUAL_ENV"; } >&2
+  pysetup () (
+    # Ran in a subshell (uses paren instead of braces to define function).
+    # Use `command` to force PATH lookup on `pip`.
+    source "$VIRTUAL_ENV/bin/activate" &&
+      command pip install --upgrade pip &&
+      command pip install -e "${PROJECT}[dev]"
+  ) >&2
+
+  # Allow user to override the python to use.
+  : ${PYTHON:=python3}
+
+  # Allow user to override the base directory.
+  case "${PROJECT:=${BASH_SOURCE[0]%bin/activate}}" in
+    ('') PROJECT=$(pwd);;
+    (*) PROJECT=$(cd $PROJECT && pwd);;
+  esac
+
+  # Disallow operating on /.
+  case $PROJECT in
+    (/) fail "PROJECT not allowed here: $PROJECT";;
+  esac
+
+  # Allow user to override the venv name.
+  case ${NAME:=$(basename $PROJECT)} in
+    (*/*) fail "NAME must not contain slashes: $NAME";;
+  esac
+
+  # Allow user to override the venv location.
+  case ${VIRTUAL_ENV:=$PROJECT/$NAME.venv} in
+    ([^/]*) VIRTUAL_ENV=$(pwd)/$VIRTUAL_ENV;;
+  esac
+
+  # Use the script in the currently activated venv because it could already
+  # know about some python3 we do not (not on our PATH).
+  # NOTE: Parent dirs in VIRTUAL_ENV must already exist; mkdir is atomic so we
+  # rely on that to avoid racing on venv creation.
+  ! mkdir $VIRTUAL_ENV 2> /dev/null &&
+    emit
+
+  # We now have the venv lock and should remove it if something goes wrong.
+  set -e; trap 'rc=$?; set +e; cleanup $rc; exit $rc' EXIT HUP INT QUIT TERM
+
+  # If either python3 or the venv module is missing (some Linux distros move
+  # venv to a distro package) let the user know what is needed.
+  ! pyexists &&
+    fail "Please make this work before coming back: $PYTHON -m venv"
+
+  # Try to create the venv!
+  ! pycreate &&
+    fail "Unable to create venv: $PYTHON -m venv $VIRTUAL_ENV"
+
+  # Try to populate the venv with dev_requires and editable install!
+  ! pysetup &&
+    fail "Unable to install reqs: ($VIRTUAL_ENV) pip install -e $PROJECT[dev]"
+
+  # Everything went great!
+  emit
+
+)
