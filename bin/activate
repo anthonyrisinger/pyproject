@@ -20,13 +20,8 @@ source $(
   cleanup () { (($1)) && mv $VIRTUAL_ENV{,.$$} && rm -r $VIRTUAL_ENV.$$; } >&2
   pyexists () { $PYTHON -c 'import venv'; } >&2
   pycreate () { $PYTHON -m venv $VIRTUAL_ENV; } >&2
-  pysetup () (
-    # Ran in a subshell (uses paren instead of braces to define function).
-    # Use `command` to force PATH lookup on `pip`.
-    source $VIRTUAL_ENV$ACTIVATE &&
-      command pip install --upgrade pip &&
-      command pip install -e ${PROJECT}[dev]
-  ) >&2
+  pysetup () { pip install -U pip; pip install -e ${PROJECT}[dev]; } >&2
+  pip () { $VIRTUAL_ENV/bin/pip "${@}"; }
 
   DEVNULL=/dev/null
   ACTIVATE=/bin/activate
