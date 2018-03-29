@@ -6,26 +6,41 @@
 # a noop if problems turn up.
 source $(
 
+  # Make shell scripting nicer:
+  # 1. Disable pathname expansion for unquoted words.
+  # 2. Patterns that match nothing expand to zero words.
+  # 3. Enable extended pattern matching operators.
+  # 4. Word split on newline ONLY.
+  set -f; shopt -s nullglob extglob; IFS=$'\n'
+
   # Helpers.
-  emit () { echo "$VIRTUAL_ENV/bin/activate"; exit; }
-  warn () { echo ">>> (${LOGLEVEL:-warn}) ${*}"; } >&2
-  fail () { LOGLEVEL=fail warn "${*}"; echo "/dev/null"; exit 1; }
+  emit () { echo $VIRTUAL_ENV$ACTIVATE; exit; }
+  warn () { echo ">>> (${LOGLEVEL:-warn}) ${1}"; } >&2
+  fail () { LOGLEVEL=fail warn "${1}"; echo $DEVNULL; exit 1; }
   cleanup () { (($1)) && mv $VIRTUAL_ENV{,.$$} && rm -r $VIRTUAL_ENV.$$; } >&2
-  pyexists () { "$PYTHON" -c 'import venv'; } >&2
-  pycreate () { "$PYTHON" -m venv "$VIRTUAL_ENV"; } >&2
+  pyexists () { $PYTHON -c 'import venv'; } >&2
+  pycreate () { $PYTHON -m venv $VIRTUAL_ENV; } >&2
   pysetup () (
     # Ran in a subshell (uses paren instead of braces to define function).
     # Use `command` to force PATH lookup on `pip`.
-    source "$VIRTUAL_ENV/bin/activate" &&
+    source $VIRTUAL_ENV$ACTIVATE &&
       command pip install --upgrade pip &&
-      command pip install -e "${PROJECT}[dev]"
+      command pip install -e ${PROJECT}[dev]
   ) >&2
+
+  DEVNULL=/dev/null
+  ACTIVATE=/bin/activate
+  case $(uname -s) in
+    (CYGWIN|MINGW*)
+      ACTIVATE=\\Scripts\\activate
+      ;;
+  esac
 
   # Allow user to override the python to use.
   : ${PYTHON:=python3}
 
   # Allow user to override the base directory.
-  case "${PROJECT:=${BASH_SOURCE[0]%bin/activate}}" in
+  case ${PROJECT:=${BASH_SOURCE[0]%${ACTIVATE:1}}} in
     ('') PROJECT=$(pwd);;
     (*) PROJECT=$(cd $PROJECT && pwd);;
   esac
