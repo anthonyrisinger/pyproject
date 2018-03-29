@@ -1,0 +1,15 @@
+# Project venv
+/*.venv/
+
+# Disposable things
+.config/
+.cache/
+
+# Setuptools
+*.dist-info/
+*.egg-info/
+
+# Bytecode
+.pytest_cache/
+__pycache__/
+*.py[cod]
