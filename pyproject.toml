@@ -1,0 +1,30 @@
+# PEP 517/518: https://snarky.ca/clarifying-pep-518/
+# Consolidates setup.py, setup.cfg, MANIFEST.in (setuptools-isms), and some
+# uses of requirements.txt (pip-isms) into a well-defined and config (this),
+# enabling pip and other frontends to select alternative backends like flit.
+
+# [build-system]
+# requires = ["setuptools", "wheel"]
+# build-backend = "setuptools.somefutureapi:main"
+
+# [build-system]
+# requires = ["flit"]
+# build-backend = "flit.buildapi"
+
+# [tool.flit.metadata]
+# module = "pyproject"
+# dist-name = "pyproject"
+# requires-python = "3"
+# author = "C Anthony Risinger"
+# author-email = "c@anthonyrisinger.com"
+# maintainer = "C Anthony Risinger"
+# maintainer-email = "c@anthonyrisinger.com"
+# description-file="README.rst"
+# home-page = "..."
+# keywords = "..."
+# classifiers = [...]
+# requires = [...]
+# dev-requires = [...]
+
+# [tool.flit.scripts]
+# pyproject = "pyproject.cli:main"
