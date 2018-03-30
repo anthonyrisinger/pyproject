@@ -90,9 +90,12 @@ class attribute(caching):
         try:
             value = instance.__dict__[self.name]
         except KeyError:
-            value = super().__get__(instance, owner)
-        except AttributeError:
-            value = self
+            try:
+                getter = super().__get__
+            except AttributeError:
+                value = self
+            else:
+                value = getter(instance, owner)
         return value
 
     def __set__(self, instance, value):
@@ -102,4 +105,9 @@ class attribute(caching):
         value = self.fun(instance, request)
         if value is request:
             value = getattr(value, 'value', value)
-        super().__set__(instance, value)
+        try:
+            setter = super().__set__
+        except AttributeError:
+            pass
+        else:
+            setter(instance, value)
