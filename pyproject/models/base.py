@@ -4,6 +4,7 @@ import itertools
 import re
 
 from . import errors
+from . import props
 from . import utils
 
 
@@ -15,19 +16,20 @@ class BaseModel:
     _key_attributes = ['type', 'name']
     _simple_key = 'type'
 
-    @utils.attribute
-    def model(self, value):
-        assert value == self._model
+    @props.attribute
+    def model(self, r):
+        print(r)
+        assert r.value == self._model
         return self._model
 
-    @utils.attribute
-    def type(self, value):
-        assert value == self._type or (isinstance(value, tuple) and
-                                       self._type in value)
+    @props.attribute
+    def type(self, r):
+        assert r.value == self._type or (isinstance(r.value, tuple) and
+                                         self._type in r.value)
         return self._type
 
-    @utils.attribute
-    def name(self, value):
+    @props.attribute
+    def name(self, r):
         # Strings are global scope and ints are local scope.
         value = str(value) if value else '0'
         if value.isdecimal():

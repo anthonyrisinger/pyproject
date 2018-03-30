@@ -1,3 +1,43 @@
+import enum
+
+
+class Proto(enum.Flag):
+
+    O = OWNER = enum.auto()
+    I = INSTANCE = enum.auto()
+    OI = OWNER_INSTANCE = OWNER | INSTANCE
+
+    G = GET = enum.auto()
+    S = SET = enum.auto()
+    D = DELETE = enum.auto()
+    GSD = GET_SET_DELETE = GET | SET | DELETE
+
+    OG = OWNER_GET = OWNER | GET
+    OS = OWNER_SET = OWNER | SET
+    OD = OWNER_DELETE = OWNER | DELETE
+    IG = INSTANCE_GET = INSTANCE | GET
+    IS = INSTANCE_SET = INSTANCE | SET
+    ID = INSTANCE_DELETE = INSTANCE | DELETE
+
+
+class Request:
+
+    @property
+    def proto(self):
+        return Proto
+
+    def __init__(self, prop=None, instance=None, owner=None, **kwds):
+        flags = Proto.OWNER_GET if instance is None else Proto.INSTANCE_GET
+        request = self.Request(self, instance, owner)
+
+    def update(self, *args, **kwds):
+        updates = {}
+        updates.update(*args)
+        updates.update(kwds)
+        for key in updates:
+            setattr(self, key, updates[key])
+
+
 class config:
     """Configurable property decorator.
 
@@ -11,16 +51,7 @@ class config:
     Both are handled consistently.
     """
 
-    class INSTANCE:
-        class GET:
-            pass
-
-    class OWNER:
-        class GET:
-            pass
-
-    # Check for either.
-    GET = (OWNER.GET, INSTANCE.GET)
+    Request = Request
 
     def __init__(self, *args, name=None, **kwds):
         """Store decorated function config."""
@@ -42,8 +73,8 @@ class config:
         self.name = name
 
     def __get__(self, instance, owner):
-        cls = self.OWNER.GET if instance is None else self.INSTANCE.GET
-        request = cls()
+        flags = Proto.OWNER_GET if instance is None else Proto.INSTANCE_GET
+        request = self.Request(self, instance, owner)
         request.config = self
         value = self.fun(instance, request)
         return value
@@ -74,17 +105,6 @@ class caching(config):
 
 
 class attribute(caching):
-
-    class INSTANCE(config.INSTANCE):
-        class SET:
-            pass
-
-    class OWNER(config.OWNER):
-        class SET:
-            pass
-
-    # Check for either.
-    SET = (OWNER.SET, INSTANCE.SET)
 
     def __get__(self, instance, owner):
         try:
