@@ -43,9 +43,9 @@ class config:
 
     def __get__(self, instance, owner):
         cls = self.OWNER.GET if instance is None else self.INSTANCE.GET
-        context = cls()
-        context.config = self
-        value = self.fun(instance, context)
+        request = cls()
+        request.config = self
+        value = self.fun(instance, request)
         return value
 
 
@@ -96,10 +96,10 @@ class attribute(caching):
         return value
 
     def __set__(self, instance, value):
-        context = self.INSTANCE.SET()
-        context.config = self
-        context.value = value
-        value = self.fun(instance, context)
-        if value is context:
+        request = self.INSTANCE.SET()
+        request.config = self
+        request.value = value
+        value = self.fun(instance, request)
+        if value is request:
             value = getattr(value, 'value', value)
         super().__set__(instance, value)
